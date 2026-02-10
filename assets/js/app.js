@@ -5,13 +5,15 @@ document.addEventListener('DOMContentLoaded', () => {
     showSection('dashboard');
 });
 
-function showSection(sectionId) {
+function showSection(sectionId, refresh = true) {
     document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
     document.getElementById(`section-${sectionId}`).classList.remove('hidden');
-    
-    if (sectionId === 'reports') loadReports();
-    if (sectionId === 'dashboard') loadCemeteries();
-    if (sectionId === 'cemeteries') loadAdminCemeteries(); 
+
+    if (refresh) {
+        if (sectionId === 'reports') loadReports();
+        if (sectionId === 'dashboard') loadCemeteries();
+        if (sectionId === 'cemeteries') loadAdminCemeteries();
+    }
 }
 
 async function loadCemeteries() {
@@ -48,14 +50,15 @@ async function loadGraves(cemeteryId) {
     `).join('');
 }
 
-async function loadReports() {
+async function loadReports(termo = '') {
     try {
-        const response = await fetch('api/reports.php');
+        const response = await fetch(`api/reports.php?termo=${termo}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        
+
         const data = await response.json();
         console.log('Dados carregados:', data);
-        
+        console.log('Total Covas:', data.total_covas);
+
         // Stats Cards
         const statsContainer = document.getElementById('report-stats');
         statsContainer.innerHTML = `
@@ -65,14 +68,14 @@ async function loadReports() {
         </div>
         <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-green-500">
             <p class="text-sm text-gray-500 font-bold uppercase">Total de covas</p>
-            <p class="text-3xl font-black text-gray-800">${data.total_covas}</p>
+            <p class="text-3xl font-black text-gray-800">${data.total_covas ?? 0}</p>
         </div>
         <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-green-500">
-            <p class="text-sm text-gray-500 font-bold uppercase">Ocupados</p>
+            <p class="text-sm text-gray-500 font-bold uppercase">Covas Ocupadas</p>
             <p class="text-3xl font-black text-gray-800">${data.occupied_graves}</p>
         </div>
         <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-yellow-500">
-            <p class="text-sm text-gray-500 font-bold uppercase">Livres</p>
+            <p class="text-sm text-gray-500 font-bold uppercase">Covas Livres</p>
             <p class="text-3xl font-black text-gray-800">${data.free_graves}</p>
         </div>
         <div class="bg-white p-6 rounded-2xl shadow-sm border-l-4 border-red-500">
@@ -81,9 +84,9 @@ async function loadReports() {
         </div>
     `;
 
-    // Table
-    const tableBody = document.getElementById('report-table-body');
-    tableBody.innerHTML = data.details.map(d => `
+        // Table
+        const tableBody = document.getElementById('report-table-body');
+        tableBody.innerHTML = data.details.map(d => `
         <tr class="hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4 font-bold text-gray-700">${d.numero}</td>
             <td class="px-6 py-4 text-gray-600">${d.cemiterio_nome}</td>
@@ -120,25 +123,30 @@ function openAddCemeteryModal() {
 }
 
 async function saveCemetery() {
-    const data = {
-        nome: document.getElementById('cem-nome').value,
-        endereco: document.getElementById('cem-end').value,
-        cidade: document.getElementById('cem-cid').value
-    };
-    
-    // Adicionado: headers e verificação de resposta
-    await fetch('api/cemeteries.php', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    });
-    
-    closeModal();
-    // Importante: Recarregar a lista para o novo item aparecer
-    loadCemeteries(); 
-    showSection('dashboard');
+    try {
+        const data = {
+            nome: document.getElementById('cem-nome').value,
+            endereco: document.getElementById('cem-end').value,
+            cidade: document.getElementById('cem-cid').value
+        };
+
+        // Adicionado: headers e verificação de resposta
+        await fetch('api/cemeteries.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        closeModal();
+        // Importante: Recarregar a lista para o novo item aparecer
+        loadCemeteries();
+        showSection('dashboard');
+    }
+    catch (error) {
+        console.error('Erro ao salvar cemitério:', error);
+    }
 }
 function openAddGraveModal() {
     const modal = document.getElementById('modal');
@@ -146,7 +154,7 @@ function openAddGraveModal() {
     document.getElementById('modal-content').innerHTML = `
         <div class="space-y-4">
             <input type="text" id="grave-num" placeholder="Número da Cova" class="w-full p-3 border rounded-lg">
-            <input type="text" id="grave-Tip" placeholder="Tipo de cova (vertical/horizontal)" class="w-full p-3 border rounded-lg">
+            <input type="text" id="grave-tip" placeholder="Tipo de cova (vertical/horizontal)" class="w-full p-3 border rounded-lg">
             <input type="number" id="grave-cap" placeholder="Capacidade de Corpos" value="1" class="w-full p-3 border rounded-lg">
         </div>
     `;
@@ -155,28 +163,39 @@ function openAddGraveModal() {
 }
 
 async function saveGrave() {
-    const data = {
-        cemiterio_id: currentCemeteryId,
-        numero: document.getElementById('grave-num').value,
-        capacidade_total: document.getElementById('grave-cap').value,
-        tipo: document.getElementById('grave-Tip').value
-    };
-    await fetch('api/graves.php', {
-        method: 'POST',
-        body: JSON.stringify(data)
-    });
-    closeModal();
-    loadGraves(currentCemeteryId);
+    try {
+        const data = {
+            cemiterio_id: currentCemeteryId,
+            numero: document.getElementById('grave-num').value,
+            capacidade_total: document.getElementById('grave-cap').value,
+            tipo: document.getElementById('grave-tip').value
+        };
+        await fetch('api/graves.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+        closeModal();
+        loadGraves(currentCemeteryId);
+    } catch (error) {
+        console.error('Erro ao salvar jazigo:', error);
+    }
 }
 
 async function openGraveDetails(id, numero) {
     const modal = document.getElementById('modal');
     document.getElementById('modal-title').innerText = `Jazigo ${numero}`;
-    
+
     // Busca a lista de pessoas sepultadas neste jazigo
     const response = await fetch(`api/deceased.php?grave_id=${id}`);
     const ocupantes = await response.json();
-    
+
+    // Busca detalhes do jazigo
+    const responseGrave = await fetch(`api/graves.php?id=${id}`);
+    const jazigo = await responseGrave.json();
+
     let htmlContent = '';
 
     // Parte 1: Listagem de quem já está lá
@@ -186,7 +205,6 @@ async function openGraveDetails(id, numero) {
                 <h4 class="text-sm font-bold text-gray-500 uppercase mb-2">Ocupantes Atuais</h4>
                 <div class="space-y-2">
                    ${ocupantes.map(o => `
-                <h4 class="text-sm font-bold text-gray-500 uppercase mb-2">Tipo de Cova: ${o.Tipo}</h4>
     <div class="p-3 bg-indigo-50 rounded-lg border border-indigo-100 flex justify-between items-center">
         <div>
             <p class="font-bold text-indigo-900">${o.nome}</p>
@@ -223,6 +241,14 @@ async function openGraveDetails(id, numero) {
             </div>
         </div>
     `;
+    htmlContent += `
+    <div class="mt-4 p-4 bg-gray-50 rounded-lg">
+        <h4 class="text-sm font-bold text-gray-500 uppercase mb-2">Detalhes do Jazigo</h4>
+        <p class="text-gray-700"><strong>Tipo de Cova:</strong> ${jazigo.Tipo || jazigo.tipo}</p>
+        <p class="text-gray-700"><strong>Capacidade:</strong> ${jazigo.capacidade_total}</p>
+    </div>
+    `;
+
 
     document.getElementById('modal-content').innerHTML = htmlContent;
     document.getElementById('modal-save').onclick = () => saveDeceased(id);
@@ -254,7 +280,7 @@ async function saveDeceased(graveId) {
         document.getElementById('dead-nasc').value = '';
         document.getElementById('dead-fale').value = '';
         document.getElementById('dead-sep').value = '';
-        
+
         closeModal();
         loadGraves(currentCemeteryId);
     } else {
@@ -285,19 +311,29 @@ async function loadAdminCemeteries() {
 async function deleteDeceased(id, graveId, graveNumero) {
     if (!confirm('Tem certeza que deseja remover este registro de sepultamento?')) return;
 
-    const response = await fetch('api/delete_deceased.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: id })
-    });
+    try {
+        const response = await fetch('api/delete_deceased.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        });
 
-    const result = await response.json();
-    if (result.status === 'success') {
-        // Recarrega os detalhes do jazigo para mostrar a lista atualizada
-        openGraveDetails(graveId, graveNumero);
-        // Atualiza o mapa de cores
-        loadGraves(currentCemeteryId);
-    } else {
-        alert('Erro ao excluir: ' + result.message);
+        const result = await response.json();
+        if (result.status === 'success') {
+            // Recarrega os detalhes do jazigo para mostrar a lista atualizada
+            openGraveDetails(graveId, graveNumero);
+            // Atualiza o mapa de cores
+            loadGraves(currentCemeteryId);
+        } else {
+            alert('Erro ao excluir: ' + result.message);
+        }
+    } catch (error) {
+        console.error('Erro ao excluir registro:', error);
+        alert('Ocorreu um erro ao tentar excluir o registro.');
     }
+}
+function searchPeople() {
+    const termo = document.getElementById('search-input').value;
+    loadReports(termo);
+    showSection('reports', false);
 }

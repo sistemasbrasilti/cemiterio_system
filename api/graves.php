@@ -8,6 +8,15 @@ $method = $_SERVER['REQUEST_METHOD'];
 switch ($method) {
     case 'GET':
         $cemetery_id = $_GET['cemetery_id'] ?? null;
+        $id = $_GET['id'] ?? null;
+        
+        if ($id) {
+             $stmt = $pdo->prepare("SELECT * FROM graves WHERE id = ?");
+             $stmt->execute([$id]);
+             echo json_encode($stmt->fetch());
+             break;
+        }
+        
         if ($cemetery_id) {
             // Busca jazigos e o sepultamento mais recente para cada um
             // No arquivo api/graves.php

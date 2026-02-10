@@ -2,21 +2,26 @@
 require_once '../config/database.php';
 header('Content-Type: application/json');
 
+// Disable caching
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Cache-Control: post-check=0, pre-check=0", false);
+header("Pragma: no-cache");
+
 try {
     $pdo = getDBConnection();
     
     // Estatísticas Gerais - Garantir valores numéricos
-    $total_graves = $pdo->query("SELECT COUNT(*) FROM graves")->fetchColumn();
-    $total_covas = $pdo->query("SELECT COALESCE(SUM(capacidade_total), 0) FROM graves")->fetchColumn();
-    $occupied_graves = $pdo->query("SELECT COUNT(grave_id) FROM deceased")->fetchColumn();
-    $free_graves = $pdo->query("SELECT COUNT(*) FROM graves WHERE id NOT IN (SELECT grave_id FROM deceased)")->fetchColumn();
+    $total_graves = (int)$pdo->query("SELECT COUNT(*) FROM graves")->fetchColumn();
+    $total_covas = (int)$pdo->query("SELECT COALESCE(SUM(capacidade_total), 0) FROM graves")->fetchColumn();
+    $occupied_graves = (int)$pdo->query("SELECT COUNT(grave_id) FROM deceased")->fetchColumn();
+    $free_graves = $total_covas - $occupied_graves;
     
     $stats = [
-        'total_graves' => (int)($total_graves ?? 0),
-        'total_covas' => (int)($total_covas ?? 0),
-        'occupied_graves' => (int)($occupied_graves ?? 0),
+        'total_graves' => $total_graves,
+        'total_covas' => $total_covas,
+        'occupied_graves' => $occupied_graves,
         'exceeded_time' => 0,
-        'free_graves' => (int)($free_graves ?? 0),
+        'free_graves' => $free_graves,
         'details' => []
     ];
 } catch (Exception $e) {
@@ -35,13 +40,28 @@ try {
 
 // Detalhes por cova
 try {
+    $termo = $_GET['termo'] ?? '';
+    
     $sql = "SELECT g.numero, g.cemiterio_id, c.nome as cemiterio_nome, 
                    d.nome as morto_nome, d.data_falecimento, d.data_sepultamento 
             FROM graves g
             JOIN cemeteries c ON g.cemiterio_id = c.id
-            LEFT JOIN deceased d ON d.grave_id = g.id
-            ORDER BY g.numero ASC, d.data_sepultamento DESC";
-    $stmt = $pdo->query($sql);
+            JOIN deceased d ON d.grave_id = g.id";
+            
+            if ($termo) {
+                $sql .= " WHERE d.nome LIKE :termo";
+            }
+            
+            $sql .= " ORDER BY g.numero ASC, d.data_sepultamento DESC";
+    
+    $stmt = $pdo->prepare($sql);
+    
+    if ($termo) {
+        $stmt->execute(['termo' => "%$termo%"]);
+    } else {
+        $stmt->execute();
+    }
+    
     $rows = $stmt->fetchAll();
 
     foreach ($rows as $row) {

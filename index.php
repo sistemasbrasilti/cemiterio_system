@@ -35,7 +35,11 @@ if (!isset($_SESSION['user_id'])) {
 
     <main class="container mx-auto mt-10 p-4">
         <!-- Dashboard -->
-        <section id="section-dashboard" class="section">
+        <section id="section-dashboard" class="section ">
+            <div id="search-container" class="flex space-x-2 mb-4">
+                <input type="text" id="search-input" placeholder="Procurar pessoa..." class="p-3 border rounded-lg">
+                <button onclick="searchPeople()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg font-semibold shadow-md">Procurar</button>
+            </div>
             <div class="mb-8">
                 <h2 class="text-3xl font-bold text-gray-800">Painel de Controle</h2>
                 <p class="text-gray-600">Selecione um cemitério para visualizar o mapa e gerenciar as covas.</p>

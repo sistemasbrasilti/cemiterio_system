@@ -9,7 +9,13 @@ switch ($method) {
     case 'GET':
         $grave_id = $_GET['grave_id'] ?? null;
         if ($grave_id) {
-            $stmt = $pdo->prepare("SELECT * FROM deceased WHERE grave_id = ? ORDER BY data_sepultamento DESC");
+            $stmt = $pdo->prepare("
+                SELECT d.*, g.tipo, g.capacidade_total 
+                FROM deceased d
+                JOIN graves g ON d.grave_id = g.id
+                WHERE d.grave_id = ? 
+                ORDER BY d.data_sepultamento DESC
+            ");
             $stmt->execute([$grave_id]);
             echo json_encode($stmt->fetchAll());
         }
@@ -19,8 +25,6 @@ switch ($method) {
         $data = json_decode(file_get_contents('php://input'), true);
         
         // Verifica capacidade antes de inserir
-        $stmt_cap = $pdo->prepare("SELECT capacidadade_total, (SELECT COUNT(*) FROM deceased WHERE grave_id = ?) as atual FROM graves WHERE id = ?");
-        // Nota: Corrigindo erro de digitação na query acima (capacidade_total)
         $stmt_cap = $pdo->prepare("SELECT capacidade_total, (SELECT COUNT(*) FROM deceased WHERE grave_id = ?) as atual FROM graves WHERE id = ?");
         $stmt_cap->execute([$data['grave_id'], $data['grave_id']]);
         $cap = $stmt_cap->fetch();
