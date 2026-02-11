@@ -27,7 +27,7 @@ Este sistema foi desenvolvido para gerenciar cemitérios municipais, permitindo 
    - Certifique-se de que as permissões de leitura estão corretas.
 
 3. **Acesso:**
-   - Acesse via navegador: `http://seu-dominio/index.php`.
+   - Acesse via navegador: `http://seu-dominio/login.php`.
 
 ## Estrutura do Projeto
 - `/api`: Endpoints que processam os dados.
