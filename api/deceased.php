@@ -34,8 +34,8 @@ switch ($method) {
             break;
         }
 
-        $stmt = $pdo->prepare("INSERT INTO deceased (grave_id, nome, data_nascimento, data_falecimento, data_sepultamento) VALUES (?, ?, ?, ?, ?)");
-        $stmt->execute([$data['grave_id'], $data['nome'], $data['data_nascimento'], $data['data_falecimento'], $data['data_sepultamento']]);
+        $stmt = $pdo->prepare("INSERT INTO deceased (grave_id, nome, data_nascimento, data_falecimento, data_sepultamento, cpf, tel, cns) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->execute([$data['grave_id'], $data['nome'], $data['data_nascimento'], $data['data_falecimento'], $data['data_sepultamento'], $data['cpf'], $data['tel'], $data['cns']]);
         echo json_encode(['status' => 'success', 'id' => $pdo->lastInsertId()]);
         break;
 }

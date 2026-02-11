@@ -50,8 +50,8 @@ switch ($method) {
 
     case 'POST':
         $data = json_decode(file_get_contents('php://input'), true);
-        $stmt = $pdo->prepare("INSERT INTO graves (cemiterio_id, numero, Tipo, capacidade_total) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$data['cemiterio_id'], $data['numero'], $data['tipo'], $data['capacidade_total']]);
+        $stmt = $pdo->prepare("INSERT INTO graves (cemiterio_id, numero, Tipo, capacidade_total, perpetuo) VALUES (?, ?, ?, ?, ?)");
+        $stmt->execute([$data['cemiterio_id'], $data['numero'], $data['tipo'], $data['capacidade_total'], $data['perpetuo']]);
         echo json_encode(['status' => 'success', 'id' => $pdo->lastInsertId()]);
         break;
 }

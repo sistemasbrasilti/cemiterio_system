@@ -110,6 +110,7 @@ async function loadReports(termo = '') {
 // Modais e Cadastros
 function openAddCemeteryModal() {
     const modal = document.getElementById('modal');
+    document.getElementById('modal-save').classList.remove('hidden');
     document.getElementById('modal-title').innerText = 'Novo Cemitério';
     document.getElementById('modal-content').innerHTML = `
         <div class="space-y-4">
@@ -150,11 +151,18 @@ async function saveCemetery() {
 }
 function openAddGraveModal() {
     const modal = document.getElementById('modal');
+    document.getElementById('modal-save').classList.remove('hidden');
     document.getElementById('modal-title').innerText = 'Novo Jazigo';
     document.getElementById('modal-content').innerHTML = `
         <div class="space-y-4">
             <input type="text" id="grave-num" placeholder="Número da Cova" class="w-full p-3 border rounded-lg">
-            <input type="text" id="grave-tip" placeholder="Tipo de cova (vertical/horizontal)" class="w-full p-3 border rounded-lg">
+            <label for="grave-p" class="block text-sm font-medium text-gray-700">Jazigo Perpétuo?</label>
+            <select id="grave-p" class="w-full p-3 border rounded-lg">
+                <option value="">Selecione</option>
+                <option value="Sim">Sim</option>
+                <option value="Não">Não</option>
+            </select>
+            <input type="text" id="grave-tip" placeholder="Tipo de Cova" class="w-full p-3 border rounded-lg">
             <input type="number" id="grave-cap" placeholder="Capacidade de Corpos" value="1" class="w-full p-3 border rounded-lg">
         </div>
     `;
@@ -168,7 +176,8 @@ async function saveGrave() {
             cemiterio_id: currentCemeteryId,
             numero: document.getElementById('grave-num').value,
             capacidade_total: document.getElementById('grave-cap').value,
-            tipo: document.getElementById('grave-tip').value
+            tipo: document.getElementById('grave-tip').value,
+            perpetuo: document.getElementById('grave-p').value,
         };
         await fetch('api/graves.php', {
             method: 'POST',
@@ -186,6 +195,7 @@ async function saveGrave() {
 
 async function openGraveDetails(id, numero) {
     const modal = document.getElementById('modal');
+    document.getElementById('modal-save').classList.remove('hidden');
     document.getElementById('modal-title').innerText = `Jazigo ${numero}`;
 
     // Busca a lista de pessoas sepultadas neste jazigo
@@ -210,6 +220,11 @@ async function openGraveDetails(id, numero) {
             <p class="font-bold text-indigo-900">${o.nome}</p>
             <p class="text-xs text-indigo-700">Sepultamento: ${new Date(o.data_sepultamento).toLocaleDateString('pt-BR')}</p>
         </div>
+        <button onclick="openDeceasedDetails('${o.nome}', '${o.cpf || ''}', '${o.tel || ''}', '${o.cns || ''}', '${o.data_sepultamento || ''}', '${o.data_nascimento || ''}', '${o.data_falecimento || ''}')" class="text-indigo-600 hover:bg-indigo-100 p-2 rounded-lg transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-three-dots-vertical" viewBox="0 0 16 16">
+                <path d="M9.5 13a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0m0-5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0"/>
+            </svg>
+        </button>
         <button onclick="deleteDeceased(${o.id}, ${id}, '${numero}')" class="text-red-600 hover:bg-red-100 p-2 rounded-lg transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
         </button>
@@ -239,6 +254,18 @@ async function openGraveDetails(id, numero) {
                 <label class="text-xs font-bold text-gray-500">Data Sepultamento</label>
                 <input type="date" id="dead-sep" class="w-full p-3 border rounded-lg">
             </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500">CPF</label>
+                <input type="text" placeholder="000.000.000-00" id="dead-cpf" class="w-full p-3 border rounded-lg">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500">Telefone responsável</label>
+                <input type="text" placeholder="(00) 00000-0000" id="dead-tel" class="w-full p-3 border rounded-lg">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500">CNS</label>
+                <input type="text" id="dead-cns" class="w-full p-3 border rounded-lg">
+            </div>
         </div>
     `;
     htmlContent += `
@@ -246,6 +273,7 @@ async function openGraveDetails(id, numero) {
         <h4 class="text-sm font-bold text-gray-500 uppercase mb-2">Detalhes do Jazigo</h4>
         <p class="text-gray-700"><strong>Tipo de Cova:</strong> ${jazigo.Tipo || jazigo.tipo}</p>
         <p class="text-gray-700"><strong>Capacidade:</strong> ${jazigo.capacidade_total}</p>
+        <p class="text-gray-700"><strong>Perpétuo:</strong> ${jazigo.perpetuo}</p>
     </div>
     `;
 
@@ -265,7 +293,10 @@ async function saveDeceased(graveId) {
         nome: nomeInput.value,
         data_nascimento: document.getElementById('dead-nasc').value,
         data_falecimento: document.getElementById('dead-fale').value,
-        data_sepultamento: document.getElementById('dead-sep').value
+        data_sepultamento: document.getElementById('dead-sep').value,
+        cpf: document.getElementById('dead-cpf').value,
+        tel: document.getElementById('dead-tel').value,
+        cns: document.getElementById('dead-cns').value
     };
 
     const res = await fetch('api/deceased.php', {
@@ -280,7 +311,9 @@ async function saveDeceased(graveId) {
         document.getElementById('dead-nasc').value = '';
         document.getElementById('dead-fale').value = '';
         document.getElementById('dead-sep').value = '';
-
+        document.getElementById('dead-cpf').value = '';
+        document.getElementById('dead-tel').value = '';
+        document.getElementById('dead-cns').value = '';
         closeModal();
         loadGraves(currentCemeteryId);
     } else {
@@ -336,4 +369,29 @@ function searchPeople() {
     const termo = document.getElementById('search-input').value;
     loadReports(termo);
     showSection('reports', false);
+}
+function openDeceasedDetails(nome, cpf, tel, cns, data_sepultamento, data_nascimento, data_falecimento) {
+    const modal = document.getElementById('modal');
+    document.getElementById('modal-title').innerText = nome;
+
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '-';
+        const [year, month, day] = dateStr.split('-');
+        return `${day}/${month}/${year}`;
+    };
+
+    document.getElementById('modal-content').innerHTML = `
+        <div class="space-y-4">
+            <p class="text-gray-700"><strong>CPF:</strong> ${cpf || '-'}</p>
+            <p class="text-gray-700"><strong>Telefone:</strong> ${tel || '-'}</p>
+            <p class="text-gray-700"><strong>CNS:</strong> ${cns || '-'}</p>
+            <p class="text-gray-700"><strong>Data de Sepultamento:</strong> ${formatDate(data_sepultamento)}</p>
+            <p class="text-gray-700"><strong>Data de Nascimento:</strong> ${formatDate(data_nascimento)}</p>
+            <p class="text-gray-700"><strong>Data de Falecimento:</strong> ${formatDate(data_falecimento)}</p>
+        </div>
+    `;
+
+    // Esconde botão de salvar pois é apenas visualização
+    document.getElementById('modal-save').classList.add('hidden');
+    modal.classList.remove('hidden');
 }

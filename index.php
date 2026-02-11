@@ -117,11 +117,11 @@ if (!isset($_SESSION['user_id'])) {
 
     <!-- Modal Genérico -->
     <div id="modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            <div class="p-6 border-b border-gray-100">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-gray-100 flex-shrink-0">
                 <h3 id="modal-title" class="text-xl font-bold text-gray-800">Título</h3>
             </div>
-            <div id="modal-content" class="p-6">
+            <div id="modal-content" class="p-6 overflow-y-auto">
                 
             </div>
             <div class="p-6 bg-gray-50 flex justify-end space-x-3">
@@ -131,6 +131,6 @@ if (!isset($_SESSION['user_id'])) {
         </div>
     </div>
 
-    <script src="assets/js/app.js"></script>
+    <script src="assets/js/app.js?v=<?= time() ?>"></script>
 </body>
 </html>
