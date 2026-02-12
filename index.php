@@ -32,7 +32,6 @@ if (!isset($_SESSION['user_id'])) {
             </ul>
         </div>
     </nav>
-
     <main class="container mx-auto mt-10 p-4">
         <!-- Dashboard -->
         <section id="section-dashboard" class="section ">

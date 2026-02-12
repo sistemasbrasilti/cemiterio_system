@@ -162,7 +162,12 @@ function openAddGraveModal() {
                 <option value="Sim">Sim</option>
                 <option value="Não">Não</option>
             </select>
-            <input type="text" id="grave-tip" placeholder="Tipo de Cova" class="w-full p-3 border rounded-lg">
+            <label for="grave-tip" class="block text-sm font-medium text-gray-700">Tipo de Cova</label>
+            <select id="grave-tip" class="w-full p-3 border rounded-lg">
+                <option value="">Selecione</option>
+                <option value="Horizontal">Horizontal</option>
+                <option value="Vertical">Vertical</option>
+            </select>
             <input type="number" id="grave-cap" placeholder="Capacidade de Corpos" value="1" class="w-full p-3 border rounded-lg">
         </div>
     `;
@@ -265,6 +270,10 @@ async function openGraveDetails(id, numero) {
             <div>
                 <label class="text-xs font-bold text-gray-500">CNS</label>
                 <input type="text" id="dead-cns" class="w-full p-3 border rounded-lg">
+            </div>
+            <div>
+                <label class="text-xs font-bold text-gray-500">Adicione algum arquivo</label>
+                <input type="file" id="dead-file" class="w-full p-3 border rounded-lg">
             </div>
         </div>
     `;
