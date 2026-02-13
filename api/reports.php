@@ -1,5 +1,5 @@
 <?php
-require_once '../config/database.php';
+require_once __DIR__ . '/../config/database.php';
 header('Content-Type: application/json');
 
 // Disable caching
@@ -41,26 +41,31 @@ try {
 // Detalhes por cova
 try {
     $termo = $_GET['termo'] ?? '';
+    $cemetery_id = $_GET['cemetery_id'] ?? '';
     
     $sql = "SELECT g.numero, g.cemiterio_id, c.nome as cemiterio_nome, 
                    d.nome as morto_nome, d.data_falecimento, d.data_sepultamento 
             FROM graves g
             JOIN cemeteries c ON g.cemiterio_id = c.id
-            JOIN deceased d ON d.grave_id = g.id";
+            JOIN deceased d ON d.grave_id = g.id
+            WHERE 1=1";
             
-            if ($termo) {
-                $sql .= " WHERE d.nome LIKE :termo";
-            }
+    $params = [];
+
+    if ($termo) {
+        $sql .= " AND d.nome LIKE :termo";
+        $params['termo'] = "%$termo%";
+    }
+
+    if ($cemetery_id && $cemetery_id !== 'all') {
+        $sql .= " AND g.cemiterio_id = :cemetery_id";
+        $params['cemetery_id'] = $cemetery_id;
+    }
             
-            $sql .= " ORDER BY g.numero ASC, d.data_sepultamento DESC";
+    $sql .= " ORDER BY g.numero ASC, d.data_sepultamento DESC";
     
     $stmt = $pdo->prepare($sql);
-    
-    if ($termo) {
-        $stmt->execute(['termo' => "%$termo%"]);
-    } else {
-        $stmt->execute();
-    }
+    $stmt->execute($params);
     
     $rows = $stmt->fetchAll();
 
@@ -92,5 +97,14 @@ try {
     $stats['details'] = [];
 }
 
+try{
+    $sql = "SELECT * FROM cemeteries";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute();
+    $cemeteries = $stmt->fetchAll();
+    $stats['cemeteries'] = $cemeteries;
+}catch(Exception $e){
+    $stats['cemeteries'] = [];
+}
 echo json_encode($stats);
 ?>

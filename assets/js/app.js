@@ -30,6 +30,15 @@ async function loadCemeteries() {
             </div>
         </div>
     `).join('');
+
+    // Populate filter dropdown
+    const filter = document.getElementById('cemetery-filter');
+    if (filter) {
+        const currentVal = filter.value;
+        filter.innerHTML = `<option value="all">Todas as Unidades</option>` +
+            cemeteries.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+        if (currentVal && currentVal !== 'all') filter.value = currentVal;
+    }
 }
 
 async function openMap(id, name) {
@@ -50,9 +59,12 @@ async function loadGraves(cemeteryId) {
     `).join('');
 }
 
-async function loadReports(termo = '') {
+async function loadReports() {
     try {
-        const response = await fetch(`api/reports.php?termo=${termo}`);
+        const termo = document.getElementById('search-input').value;
+        const cemeteryId = document.getElementById('cemetery-filter').value;
+
+        const response = await fetch(`api/reports.php?termo=${encodeURIComponent(termo)}&cemetery_id=${cemeteryId}`);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
         const data = await response.json();
@@ -254,11 +266,20 @@ async function openGraveDetails(id, numero) {
                     <label class="text-xs font-bold text-gray-500">Falecimento</label>
                     <input type="date" id="dead-fale" class="w-full p-3 border rounded-lg">
                 </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500">Hora do falecimento</label>
+                    <input type="time" id="dead-fale-time" class="w-full p-3 border rounded-lg">
+                </div>
+                <div>
+                    <label class="text-xs font-bold text-gray-500">Hora do sepultamento</label>
+                    <input type="time" id="dead-sep-time" class="w-full p-3 border rounded-lg">
+                </div>
             </div>
             <div>
                 <label class="text-xs font-bold text-gray-500">Data Sepultamento</label>
                 <input type="date" id="dead-sep" class="w-full p-3 border rounded-lg">
             </div>
+            
             <div>
                 <label class="text-xs font-bold text-gray-500">CPF</label>
                 <input type="text" placeholder="000.000.000-00" id="dead-cpf" class="w-full p-3 border rounded-lg">
@@ -302,7 +323,9 @@ async function saveDeceased(graveId) {
         nome: nomeInput.value,
         data_nascimento: document.getElementById('dead-nasc').value,
         data_falecimento: document.getElementById('dead-fale').value,
+        hora_falecimento: document.getElementById('dead-fale-time').value,
         data_sepultamento: document.getElementById('dead-sep').value,
+        hora_sepultamento: document.getElementById('dead-sep-time').value,
         cpf: document.getElementById('dead-cpf').value,
         tel: document.getElementById('dead-tel').value,
         cns: document.getElementById('dead-cns').value
@@ -375,8 +398,7 @@ async function deleteDeceased(id, graveId, graveNumero) {
     }
 }
 function searchPeople() {
-    const termo = document.getElementById('search-input').value;
-    loadReports(termo);
+    loadReports();
     showSection('reports', false);
 }
 function openDeceasedDetails(nome, cpf, tel, cns, data_sepultamento, data_nascimento, data_falecimento) {
@@ -403,4 +425,8 @@ function openDeceasedDetails(nome, cpf, tel, cns, data_sepultamento, data_nascim
     // Esconde botão de salvar pois é apenas visualização
     document.getElementById('modal-save').classList.add('hidden');
     modal.classList.remove('hidden');
+}
+function filterCemeteries() {
+    loadReports();
+    showSection('reports', false);
 }

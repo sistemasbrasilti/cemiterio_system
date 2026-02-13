@@ -82,6 +82,21 @@ if (!isset($_SESSION['user_id'])) {
                 <div class="p-6 bg-gray-50 border-b border-gray-100">
                     <h3 class="text-lg font-bold text-gray-700">Listagem Detalhada de Jazigos</h3>
                 </div>
+                <div class="px-6 py-4 bg-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-100">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+                        <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wider">Filtrar por Cemitério</h2>
+                    </div>
+                    <div class="relative">
+                        <select id="cemetery-filter" onchange="filterCemeteries()" class="appearance-none bg-white border border-gray-300 text-gray-700 py-2 px-4 pr-8 rounded-lg leading-tight focus:outline-none focus:bg-white focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 shadow-sm w-full md:w-64 cursor-pointer transition-colors">
+                            <option value="all">Todas as Unidades</option>
+                            <!-- Preenchido via JS -->
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700">
+                            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                        </div>
+                    </div>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full">
                         <thead>
