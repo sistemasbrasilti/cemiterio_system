@@ -10,63 +10,82 @@ header("Pragma: no-cache");
 try {
     $pdo = getDBConnection();
     
-    // Estatísticas Gerais - Garantir valores numéricos
-    $total_graves = (int)$pdo->query("SELECT COUNT(*) FROM graves")->fetchColumn();
-    $total_covas = (int)$pdo->query("SELECT COALESCE(SUM(capacidade_total), 0) FROM graves")->fetchColumn();
-    $occupied_graves = (int)$pdo->query("SELECT COUNT(grave_id) FROM deceased")->fetchColumn();
+    $termo = $_GET['termo'] ?? '';
+    // $cemetery_id validation logic
+    $cemetery_id = $_GET['cemetery_id'] ?? '';
+    if ($cemetery_id === 'undefined' || $cemetery_id === 'null') {
+        $cemetery_id = '';
+    }
+
+    // Preparar WHERE para estatísticas
+    $whereStats = "";
+    $paramsStats = [];
+    
+    // Preparar WHERE para detalhes (pode ter termo de busca também)
+    $whereDetails = "WHERE 1=1";
+    $paramsDetails = [];
+
+    if ($cemetery_id && $cemetery_id !== 'all') {
+        // Filtro para estatísticas
+        $whereStats = "WHERE cemiterio_id = :id";
+        $paramsStats = [':id' => $cemetery_id];
+        
+        // Filtro para detalhes
+        $whereDetails .= " AND g.cemiterio_id = :id";
+        $paramsDetails[':id'] = $cemetery_id;
+    }
+
+    if ($termo) {
+        $whereDetails .= " AND d.nome LIKE :termo";
+        $paramsDetails[':termo'] = "%$termo%";
+    }
+
+    // 1. Calcular Estatísticas
+    // Total de Jazigos (Graves)
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM graves $whereStats");
+    $stmt->execute($paramsStats);
+    $total_graves = (int)$stmt->fetchColumn();
+
+    // Capacidade Total (Covas)
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(capacidade_total), 0) FROM graves $whereStats");
+    $stmt->execute($paramsStats);
+    $total_covas = (int)$stmt->fetchColumn();
+
+    // Ocupados (Deceased)
+    // Precisamos fazer JOIN se estiver filtrando por cemitério, pois deceased não tem cemiterio_id direto, apenas via grave_id
+    if ($cemetery_id && $cemetery_id !== 'all') {
+        $sqlOccupied = "SELECT COUNT(d.id) FROM deceased d JOIN graves g ON d.grave_id = g.id WHERE g.cemiterio_id = :id";
+        $stmt = $pdo->prepare($sqlOccupied);
+        $stmt->execute([':id' => $cemetery_id]);
+    } else {
+        $sqlOccupied = "SELECT COUNT(*) FROM deceased";
+        $stmt = $pdo->query($sqlOccupied);
+    }
+    $occupied_graves = (int)$stmt->fetchColumn();
+
     $free_graves = $total_covas - $occupied_graves;
     
+    // Inicializa array de resposta
     $stats = [
         'total_graves' => $total_graves,
         'total_covas' => $total_covas,
         'occupied_graves' => $occupied_graves,
-        'exceeded_time' => 0,
+        'exceeded_time' => 0, // Será calculado no loop abaixo
         'free_graves' => $free_graves,
         'details' => []
     ];
-} catch (Exception $e) {
-    // Retornar resposta com valores padrão se houver erro
-    http_response_code(200);
-    echo json_encode([
-        'total_graves' => 0,
-        'total_covas' => 0,
-        'occupied_graves' => 0,
-        'exceeded_time' => 0,
-        'free_graves' => 0,
-        'details' => []
-    ]);
-    exit;
-}
 
-// Detalhes por cova
-try {
-    $termo = $_GET['termo'] ?? '';
-    $cemetery_id = $_GET['cemetery_id'] ?? '';
-    
+    // 2. Buscar Detalhes
     $sql = "SELECT g.numero, g.cemiterio_id, c.nome as cemiterio_nome, 
                    d.nome as morto_nome, d.data_falecimento, d.data_sepultamento 
             FROM graves g
             JOIN cemeteries c ON g.cemiterio_id = c.id
             JOIN deceased d ON d.grave_id = g.id
-            WHERE 1=1";
+            $whereDetails
+            ORDER BY g.numero ASC, d.data_sepultamento DESC";
             
-    $params = [];
-
-    if ($termo) {
-        $sql .= " AND d.nome LIKE :termo";
-        $params['termo'] = "%$termo%";
-    }
-
-    if ($cemetery_id && $cemetery_id !== 'all') {
-        $sql .= " AND g.cemiterio_id = :cemetery_id";
-        $params['cemetery_id'] = $cemetery_id;
-    }
-            
-    $sql .= " ORDER BY g.numero ASC, d.data_sepultamento DESC";
-    
     $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    
+    $stmt->execute($paramsDetails);
     $rows = $stmt->fetchAll();
 
     foreach ($rows as $row) {
@@ -79,6 +98,7 @@ try {
             $falta_atingir = 5 - $anos;
             
             if ($anos >= 5) {
+                // Aqui incrementamos o contador de excedidos APENAS para os registros que aparecem no filtro
                 $stats['exceeded_time']++;
                 $row['status_tempo'] = "Excedido";
                 $row['tempo_restante'] = "0 anos";
@@ -93,8 +113,16 @@ try {
         $stats['details'][] = $row;
     }
 } catch (Exception $e) {
-    // Se houver erro, details fica vazio
-    $stats['details'] = [];
+    // Retornar resposta com valores zerados se houver erro
+    $stats = [
+        'total_graves' => 0,
+        'total_covas' => 0,
+        'occupied_graves' => 0,
+        'exceeded_time' => 0,
+        'free_graves' => 0,
+        'details' => [],
+        'error' => $e->getMessage()
+    ];
 }
 
 try{
@@ -107,4 +135,5 @@ try{
     $stats['cemeteries'] = [];
 }
 echo json_encode($stats);
+
 ?>
